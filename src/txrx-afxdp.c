@@ -388,7 +388,6 @@ void *afxdp_send_thread(void *arg)
 	tx_timestamp += 2 * NSEC_PER_SEC;
 
 	while(!halt_tx_sig && (i < opt->frames_to_send) ) {
-
 		sleep_timestamp = tx_timestamp - opt->early_offset_ns;
 		ts.tv_sec = sleep_timestamp / NSEC_PER_SEC;
 		ts.tv_nsec = sleep_timestamp % NSEC_PER_SEC;

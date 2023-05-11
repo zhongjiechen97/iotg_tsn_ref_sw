@@ -61,10 +61,10 @@
 #define BATCH_SIZE 64	//for l2fwd
 
 /* Globals */
-unsigned char src_mac_addr[] = { 0xaa, 0x00, 0xaa, 0x00, 0xaa, 0x00};
-unsigned char dst_mac_addr[] = { 0x22, 0xbb, 0x22, 0xbb, 0x22, 0xbb};
-unsigned char src_ip_addr[] = { 169, 254, 1, 11};
-unsigned char dst_ip_addr[] = { 169, 254, 1, 22};
+unsigned char src_mac_addr[] = { 0xb8, 0xce, 0xf6, 0x0a, 0x3d, 0x7c};
+unsigned char dst_mac_addr[] = { 0xb8, 0xce, 0xf6, 0x0a, 0x11, 0x98};
+unsigned char src_ip_addr[] = { 192, 168, 100, 17};
+unsigned char dst_ip_addr[] = { 192, 168, 100, 14};
 struct xsk_info *glob_xskinfo_ptr;
 uint32_t glob_xdp_flags;
 int glob_ifindex;
@@ -451,7 +451,7 @@ int main(int argc, char *argv[])
 		signal(SIGABRT, afxdp_sigint_handler);
 
 		/* Wait 45s for GbE setup and configuration */
-		usleep(45000000);
+		usleep(10000000);
 
 		ts_log_start();
 
