@@ -97,8 +97,8 @@ void setup_tsn_vlan_packet(struct user_opt *opt, tsn_packet *pkt)
 	memcpy(&pkt->dst_mac, dst_mac_addr, sizeof(pkt->dst_mac));
 
 	pkt->vlan_hdr = htons(ETHERTYPE_VLAN);
-	pkt->vlan_id = VLAN_ID;
-	pkt->vlan_prio = opt->vlan_prio;
+	pkt->vlan_id = (uint8_t)VLAN_ID;
+	pkt->vlan_prio = (uint8_t)opt->vlan_prio;
 
 	pkt->eth_hdr = htons(ETH_P_TSN);
 
@@ -401,7 +401,6 @@ int main(int argc, char *argv[])
 			ret = init_tx_socket(&opt, &sockfd, &sk_addr);
 			if (!ret)
 				perror("init_tx_socket failed");
-
 			if (!opt.enable_txtime)
 				afpkt_send_thread(&opt, &sockfd, &sk_addr);
 			else
@@ -450,8 +449,8 @@ int main(int argc, char *argv[])
 		signal(SIGTERM, afxdp_sigint_handler);
 		signal(SIGABRT, afxdp_sigint_handler);
 
-		/* Wait 45s for GbE setup and configuration */
-		usleep(10000000);
+		/* Wait 5s for GbE setup and configuration */
+		usleep(5000000);
 
 		ts_log_start();
 
