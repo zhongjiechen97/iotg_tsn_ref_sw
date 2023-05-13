@@ -67,6 +67,37 @@ void afpkt_sigint_handler(int signum)
 	halt_tx_sig = signum;
 }
 
+// software
+/* Retrieve the hardware timestamp stored in CMSG */
+static uint64_t get_timestamp_sw(struct msghdr *msg)
+{
+	struct timespec *ts = NULL;
+	struct cmsghdr *cmsg;
+
+	for (cmsg = CMSG_FIRSTHDR(msg); cmsg; cmsg = CMSG_NXTHDR(msg, cmsg)) {
+		if (cmsg->cmsg_level != SOL_SOCKET)
+			continue;
+
+		switch (cmsg->cmsg_type) {
+		case SO_TIMESTAMPNS:
+		case SO_TIMESTAMPING:
+			ts = (struct timespec *) CMSG_DATA(cmsg);
+			break;
+		default: /* Ignore other cmsg options */
+			break;
+		}
+	}
+
+	if (!ts) {
+		if (verbose)
+			fprintf(stderr, "Error: timestamp null. Is ptp4l initialized?\n");
+		return 0;
+	}
+
+	return (ts[0].tv_sec * NSEC_PER_SEC + ts[0].tv_nsec);
+}
+
+
 /* Retrieve the hardware timestamp stored in CMSG */
 static uint64_t get_timestamp(struct msghdr *msg)
 {
@@ -499,6 +530,9 @@ int init_rx_socket(uint16_t etype, int *sock, char *interface)
 
 	timestamping_flags = SOF_TIMESTAMPING_RX_HARDWARE |
 				SOF_TIMESTAMPING_RAW_HARDWARE;
+	
+	// add software timestamp
+	timestamping_flags |= SOF_TIMESTAMPING_RX_SOFTWARE | SOF_TIMESTAMPING_SOFTWARE;
 
 	if (setsockopt(rsock, SOL_SOCKET, SO_TIMESTAMPING, &timestamping_flags,
 			sizeof(timestamping_flags)) < 0)
@@ -510,7 +544,7 @@ int init_rx_socket(uint16_t etype, int *sock, char *interface)
 
 int afpkt_recv_pkt(int sock, struct user_opt *opt)
 {
-	uint64_t rx_timestampC, rx_timestampD;
+	uint64_t rx_timestampC, rx_timestampD, rx_timestampE;
 	struct sockaddr_in host_address;
 	struct custom_payload *payload;
 	struct msghdr msg;
@@ -552,9 +586,15 @@ int afpkt_recv_pkt(int sock, struct user_opt *opt)
 	payload = (struct custom_payload *) payload_ptr;
 
 	if (opt->enable_hwts)
+	{
 		rx_timestampC = get_timestamp(&msg);
+		rx_timestampE = get_timestamp_sw(&msg);
+	}
 	else
+	{
 		rx_timestampC = 0;
+		rx_timestampE = 0;
+	}
 
 	/* Do simple checks and filtering */
 	if (payload->tx_queue > 8 || payload->seq > (50 * 1000 * 1000)) {
@@ -567,14 +607,15 @@ int afpkt_recv_pkt(int sock, struct user_opt *opt)
 	}
 
 	/* Result format:
-	 *   u2u latency, seq, queue, user txtime, hw rxtime, user rxtime
+	 *   u2u latency, seq, queue, user txtime, hw rxtime,sw rxtime, user rxtime
 	 */
-	fprintf(stdout, "%ld\t%d\t%d\t%ld\t%ld\t%ld\n",
+	fprintf(stdout, "%ld\t%d\t%d\t%ld\t%ld\t%ld\t%ld\n",
 			rx_timestampD - payload->tx_timestampA,
 			payload->seq,
 			payload->tx_queue,
 			payload->tx_timestampA,
 			rx_timestampC,
+			rx_timestampE,
 			rx_timestampD);
 	fflush(stdout);
 	glob_rx_seq = payload->seq;
