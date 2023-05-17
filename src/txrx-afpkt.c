@@ -54,9 +54,13 @@
 
 #include "txrx-afpkt.h"
 
+#include "dump.h"
+
 #define MAX_PACKETS 10000
 #define MSG_BUFLEN  1500
 #define RCVBUF_SIZE (MSG_BUFLEN * MAX_PACKETS)
+
+struct dump_tstamp dts = {0};
 
 extern uint32_t glob_rx_seq;
 
@@ -609,16 +613,28 @@ int afpkt_recv_pkt(int sock, struct user_opt *opt)
 	/* Result format:
 	 *   u2u latency, seq, queue, user txtime, hw rxtime,sw rxtime, user rxtime
 	 */
-	fprintf(stdout, "%ld\t%d\t%d\t%ld\t%ld\t%ld\t%ld\n",
-			rx_timestampD - payload->tx_timestampA,
+	
+	record(&dts, rx_timestampD - payload->tx_timestampA,
 			payload->seq,
 			payload->tx_queue,
 			payload->tx_timestampA,
 			rx_timestampC,
 			rx_timestampE,
 			rx_timestampD);
-	fflush(stdout);
+
+	// fprintf(stdout, "%ld\t%d\t%d\t%ld\t%ld\t%ld\t%ld\n",
+			// rx_timestampD - payload->tx_timestampA,
+			// payload->seq,
+			// payload->tx_queue,
+			// payload->tx_timestampA,
+			// rx_timestampC,
+			// rx_timestampE,
+			// rx_timestampD);
+	// fflush(stdout);
 	glob_rx_seq = payload->seq;
+	if (glob_rx_seq >= opt->frames_to_send) {		
+		dump(&dts);
+	}
 
 	return 0;
 }
