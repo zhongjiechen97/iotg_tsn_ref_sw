@@ -265,7 +265,7 @@ setup_taprio(){
                 "base-time $BASE" \
                 "${TAPRIO_SCHED[@]}" \
                 "$TAPRIO_FLAGS")
-
+        
         echo "Run: $CMD"; $CMD;
 }
 
