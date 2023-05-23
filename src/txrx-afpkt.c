@@ -60,7 +60,7 @@
 #define MSG_BUFLEN  1500
 #define RCVBUF_SIZE (MSG_BUFLEN * MAX_PACKETS)
 
-struct dump_tstamp dts = {0};
+static struct dump_tstamp dts = {0};
 
 extern uint32_t glob_rx_seq;
 

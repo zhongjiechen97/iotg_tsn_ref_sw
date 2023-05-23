@@ -69,11 +69,14 @@
 #include <bpf/bpf.h>
 
 #include "txrx-afxdp.h"
+#include "dump.h"
 
 extern uint32_t glob_xdp_flags;
 extern int glob_ifindex;
 extern int verbose;
 extern uint32_t glob_rx_seq;
+
+static struct dump_tstamp dts = {0};
 
 /* User Defines */
 #define BATCH_SIZE 64	//for l2fwd only
@@ -422,10 +425,10 @@ void *afxdp_send_thread(void *arg)
 }
 
 // Receive 1 packet at a time and print it.
-void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff)
+void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 {
 	struct custom_payload *payload;
-	uint64_t rx_timestampD;
+	uint64_t rx_timestampD, rx_timestampE;
 	tsn_packet *tsn_pkt;
 	void *payload_ptr;
 	(void) rbuff;
@@ -466,25 +469,60 @@ void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff)
 		    (tsn_pkt->eth_hdr == htons(0xb62c)) &&
 		    (payload->seq > 0 && payload->seq < (50 * 1000 * 1000)) &&
 		    (tsn_pkt->vlan_prio / 32) < 8) {
-
-			fprintf(stdout, "%lu\t%u\t%u\t%lu\t%lu\t%lu\n",
-					rx_timestampD - payload->tx_timestampA,
+			
+			/* Result format:
+			*   u2u latency, seq, queue, user txtime, hw rxtime,sw rxtime, user rxtime
+			*/
+	
+			record(&dts, rx_timestampD - payload->tx_timestampA,
 					payload->seq,
 					payload->tx_queue,
 					payload->tx_timestampA,
 					*(uint64_t *)(pkt - sizeof(uint64_t)),
+					0,
 					rx_timestampD);
+
+			// fprintf(stdout, "%lu\t%u\t%u\t%lu\t%lu\t%lu\n",
+			// 		rx_timestampD - payload->tx_timestampA,
+			// 		payload->seq,
+			// 		payload->tx_queue,
+			// 		payload->tx_timestampA,
+			// 		*(uint64_t *)(pkt - sizeof(uint64_t)),
+			// 		rx_timestampD);
 			glob_rx_seq = payload->seq;
 		} else if (verbose) {
-			fprintf(stderr, "Info: packet received type: 0x%x\n",
-				tsn_pkt->eth_hdr);
+			// fprintf(stderr, "Info: packet received type: 0x%x\n",
+			// 	tsn_pkt->eth_hdr);
+
+			record(&dts, rx_timestampD - payload->tx_timestampA,
+					payload->seq,
+					payload->tx_queue,
+					payload->tx_timestampA,
+					*(uint64_t *)(pkt - sizeof(uint64_t)),
+					0,
+					rx_timestampD);
+
+			glob_rx_seq++;
+
+			// fprintf(stdout, "%lu\t%u\t%u\t%lu\t%lu\t%lu\n",
+			// 		rx_timestampD - payload->tx_timestampA,
+			// 		payload->seq,
+			// 		payload->tx_queue,
+			// 		payload->tx_timestampA,
+			// 		*(uint64_t *)(pkt - sizeof(uint64_t)),
+			// 		rx_timestampD);
+
 		}
 	}
 
 	xsk_ring_prod__submit(&xsk->pktbuff->rx_fill_ring, rcvd);
 	xsk_ring_cons__release(&xsk->rx_ring, rcvd);
 	xsk->rx_npkts += rcvd;
-	fflush(stdout);
+
+	// fflush(stdout);
+	if (glob_rx_seq >= opt->frames_to_send) {		
+		dump(&dts);
+	}
 
 	/* FOR SCHED_FIFO/DEADLINE */
 	//TODO:implement for all threads incl afpkt?

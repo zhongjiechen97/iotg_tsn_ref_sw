@@ -462,7 +462,7 @@ int main(int argc, char *argv[])
 		case MODE_RX:
 			glob_rx_seq = 0;
 			while (!halt_tx_sig) {
-				afxdp_recv_pkt(opt.xsk, buff);
+				afxdp_recv_pkt(opt.xsk, buff, &opt);
 				if (glob_rx_seq >= opt.frames_to_send) {
 					break;
 				}
@@ -488,7 +488,7 @@ int main(int argc, char *argv[])
 				break;
 			}
 			while (!halt_tx_sig) {
-				afxdp_recv_pkt(opt.xsk, buff);
+				afxdp_recv_pkt(opt.xsk, buff, &opt);
 			}
 
 			ret = pthread_join(thread1, NULL);

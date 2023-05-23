@@ -20,7 +20,7 @@ struct dump_tstamp {
     int record_idx;
 };
 
-void record(struct dump_tstamp * dts, uint64_t a, uint32_t b, uint32_t c, uint64_t d, uint64_t e, uint64_t f, uint64_t g)
+static void record(struct dump_tstamp * dts, uint64_t a, uint32_t b, uint32_t c, uint64_t d, uint64_t e, uint64_t f, uint64_t g)
 {
     dts->recs[dts->record_idx].e2e_lat = a;
     dts->recs[dts->record_idx].seq = b;
@@ -34,7 +34,7 @@ void record(struct dump_tstamp * dts, uint64_t a, uint32_t b, uint32_t c, uint64
         return ;
 }
 
-void dump(struct dump_tstamp * dts)
+static void dump(struct dump_tstamp * dts)
 {
     for(int i=0;i<(dts->record_idx > MAX_RECORD ? MAX_RECORD: dts->record_idx);i++)
     {
