@@ -71,7 +71,7 @@ if [ "$AFP_PACKET_TEST" = "y" ]; then
         fi
         sleep 5
 
-        echo "CMD: ./txrx-tsn -i $IFACE -PtTq $TX_PKT_Q -n $NUMPKTS -l $SIZE -y $INTERVAL -e $EARLY_OFFSET -o $TXTIME_OFFSET"
+        echo "CMD: ./txrx-tsn -i $IFACE -PtTq (($TX_PKT_Q-1)) -n $NUMPKTS -l $SIZE -y $INTERVAL -e $EARLY_OFFSET -o $TXTIME_OFFSET"
         ./txrx-tsn -i $IFACE -PtTq $TX_PKT_Q -n $NUMPKTS -l $SIZE -y $INTERVAL \
                         -e $EARLY_OFFSET -o $TXTIME_OFFSET > afpkt-txtstamps.txt &
         TXRX_PID=$!

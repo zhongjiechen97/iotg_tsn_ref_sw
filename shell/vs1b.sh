@@ -73,8 +73,8 @@ if [ "$AFP_PACKET_TEST" = "y" ]; then
     fi
     sleep 5
 
-    echo "CMD: ./txrx-tsn -Pri $IFACE -q $RX_PKT_Q -n $NUMPKTS"
-    ./txrx-tsn -Pri $IFACE -q $RX_PKT_Q -n $NUMPKTS > afpkt-rxtstamps.txt &
+    echo "CMD: ./txrx-tsn -Pri $IFACE -q $RX_PKT_Q -n $NUMPKTS -h"
+    ./txrx-tsn -Pri $IFACE -q $RX_PKT_Q -n $NUMPKTS -h > afpkt-rxtstamps.txt &
     TXRX_PID=$!
 
     if ! ps -p $TXRX_PID > /dev/null; then

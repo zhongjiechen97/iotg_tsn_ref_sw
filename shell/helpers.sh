@@ -439,7 +439,9 @@ run_iperf3_bg_client(){
                 iperf3 -c $TARGET_IP_ADDR -u -b $IPERF_BITRATE -l 1440 -f m -i 10 -t 30000 -A $CPU_AFFINITY &
         else
                 # UI, X-server mode. Opens dedicated window
-               xterm -e 'iperf3 -c 169.254.1.22 -u -b 200M -l 1440 -f m -i 10 -t 30000 -A 0' &
+               #xterm -e 'iperf3 -c 169.254.1.22 -u -b 200M -l 1440 -f m -i 10 -t 30000 -A 0' &
+               # No UI
+               iperf3 -c $TARGET_IP_ADDR -u -b $IPERF_BITRATE -l 1440 -f m -i 10 -t 30000 -A $CPU_AFFINITY &
         fi
 
         if [ ! -z "$TARGET_IP_ADDR2" ]; then
@@ -462,7 +464,9 @@ run_iperf3_bg_server(){
                 iperf3 -s -B $IFACE_IP_ADDR -i 10 -1 -A $CPU_AFFINITY &
         else
                 # UI, X-server mode. Opens dedicated window
-                xterm -e 'iperf3 -s -B 169.254.1.22 -i 10 -A 0 -1' &
+                # xterm -e 'iperf3 -s -B 169.254.1.22 -i 10 -A 0 -1' &
+                # No UI
+                iperf3 -s -B $IFACE_IP_ADDR -i 10 -1 -A $CPU_AFFINITY &
         fi
 }
 
