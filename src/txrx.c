@@ -61,10 +61,10 @@
 #define BATCH_SIZE 64	//for l2fwd
 
 /* Globals */
-unsigned char src_mac_addr[] = { 0xb8, 0xce, 0xf6, 0x0a, 0x3d, 0x7c};
-unsigned char dst_mac_addr[] = { 0xb8, 0xce, 0xf6, 0x0a, 0x11, 0x98};
-unsigned char src_ip_addr[] = { 192, 168, 100, 17};
-unsigned char dst_ip_addr[] = { 192, 168, 100, 14};
+unsigned char src_mac_addr[] = { 0x6c, 0xb3, 0x11, 0x3d, 0x55, 0x17};
+unsigned char dst_mac_addr[] = { 0x6c, 0xb3, 0x11, 0x3d, 0x53, 0xa3};
+unsigned char src_ip_addr[] = { 192, 168, 5, 71};
+unsigned char dst_ip_addr[] = { 192, 168, 5, 41};
 struct xsk_info *glob_xskinfo_ptr;
 uint32_t glob_xdp_flags;
 int glob_ifindex;
@@ -451,7 +451,7 @@ int main(int argc, char *argv[])
 
 		/* Wait 5s for GbE setup and configuration */
 		usleep(5000000);
-
+		printf("AF_XDP start!\n");
 		ts_log_start();
 
 		switch (opt.mode) {

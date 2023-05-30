@@ -410,10 +410,22 @@ void *afxdp_send_thread(void *arg)
 		 *   seq, user txtime, hw txtime is via trace for now
 		 */
 		if (verbose)
-			fprintf(stdout, "%d\t%ld\n", payload->seq, payload->tx_timestampA);
+		{
+			//fprintf(stdout, "%d\t%ld\n", payload->seq, payload->tx_timestampA);
+			record(&dts, 0,
+					payload->seq,
+					payload->tx_queue,
+					payload->tx_timestampA,
+					0,
+					0,
+					0);
+		}
 		seq_num++;
 		tx_timestamp += opt->interval_ns;
-		fflush(stdout);
+		// fflush(stdout);
+		if (seq_num >= opt->frames_to_send) {		
+			dump(&dts);
+		}
 
 		i++;
 	}
@@ -439,7 +451,11 @@ void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 
 	rcvd = xsk_ring_cons__peek(&xsk->rx_ring, 1, &idx_rx);
 	if (!rcvd)
+	{
+		// pthread_yield();
+		usleep(1);
 		return;
+	}
 
 	ret = xsk_ring_prod__reserve(&xsk->pktbuff->rx_fill_ring, rcvd, &idx_fq);
 	while (ret != rcvd) {
@@ -491,18 +507,18 @@ void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 			// 		rx_timestampD);
 			glob_rx_seq = payload->seq;
 		} else if (verbose) {
-			// fprintf(stderr, "Info: packet received type: 0x%x\n",
-			// 	tsn_pkt->eth_hdr);
+			fprintf(stderr, "Info: packet received type: 0x%x\n",
+				tsn_pkt->eth_hdr);
 
-			record(&dts, rx_timestampD - payload->tx_timestampA,
-					payload->seq,
-					payload->tx_queue,
-					payload->tx_timestampA,
-					*(uint64_t *)(pkt - sizeof(uint64_t)),
-					0,
-					rx_timestampD);
+			// record(&dts, rx_timestampD - payload->tx_timestampA,
+			// 		payload->seq,
+			// 		payload->tx_queue,
+			// 		payload->tx_timestampA,
+			// 		*(uint64_t *)(pkt - sizeof(uint64_t)),
+			// 		0,
+			// 		rx_timestampD);
 
-			glob_rx_seq++;
+			// glob_rx_seq++;
 
 			// fprintf(stdout, "%lu\t%u\t%u\t%lu\t%lu\t%lu\n",
 			// 		rx_timestampD - payload->tx_timestampA,
@@ -526,7 +542,7 @@ void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 
 	/* FOR SCHED_FIFO/DEADLINE */
 	//TODO:implement for all threads incl afpkt?
-	pthread_yield();
+	// pthread_yield();
 }
 
 static void swap_mac_addresses(void *data) {
