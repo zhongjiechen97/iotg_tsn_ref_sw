@@ -117,6 +117,7 @@ static struct argp_option options[] = {
 	{0,0,0,0, "Socket Mode:" },
 	{"afxdp",	'X',	0,	0, "run using AF_XDP socket"},
 	{"afpkt",	'P',	0,	0, "run using AF_PACKET socket"},
+	{"busy poll", 'B', 0,	0, "enable busy polling"},
 
 	{0,0,0,0, "Mode:" },
 	{"transmit",	't',	0,	0, "transmit only"},
@@ -197,6 +198,11 @@ static error_t parser(int key, char *arg, struct argp_state *state)
 	case 'P':
 		opt->socket_mode = MODE_AFPKT;
 		break;
+	#ifdef BUSY_POLL
+	case 'B':
+		opt->busy_poll = 1;
+		break;
+	#endif
 	case 't':
 		opt->mode = MODE_TX;
 		break;
@@ -276,8 +282,8 @@ static error_t parser(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-static char usage[] = "-i <interface> -P [r|t]\n"
-		      "-i <interface> -X [r|t|f] [z|c|s] -q <queue>";
+static char usage[] = "-i <interface> -P [B|r|t]\n"
+		      "-i <interface> -X [B|r|t|f] [z|c|s] -q <queue>";
 
 static char summary[] = "  AF_XDP & AF_PACKET Transmit-Receive Application";
 
@@ -362,6 +368,9 @@ int main(int argc, char *argv[])
 	opt.need_wakeup = false;
 	opt.poll_timeout = 1000;
 
+	#ifdef BUSY_POLL
+	opt.busy_poll = 0;
+	#endif
 	argp_parse(&argp, argc, argv, 0, 0, &opt);
 
 	/* Parse user inputs */
@@ -413,7 +422,7 @@ int main(int argc, char *argv[])
 			 *  always steered into RX Q0 regardless of its VLAN
 			 *  priority
 			 */
-			ret = init_rx_socket(0xb62c, &sockfd, opt.ifname);
+			ret = init_rx_socket(0xb62c, &sockfd, opt.ifname, &opt);
 			if (ret != 0)
 				perror("initrx_socket failed");
 

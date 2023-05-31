@@ -33,6 +33,7 @@
 #ifndef TXRX_HEADER
 #define TXRX_HEADER
 
+#include <stdint.h>
 #include <stdio.h>
 #ifdef WITH_XDP
 #include <bpf/xsk.h>
@@ -60,6 +61,9 @@
 #define XDP_MODE_ZERO_COPY 2
 
 #define exit_with_error(s) {fprintf(stderr, "Error: %s\n", s); exit(EXIT_FAILURE);}
+
+/* Add support of SO_BUSY_POLL */
+#define BUSY_POLL
 
 extern unsigned char src_mac_addr[];
 extern unsigned char dst_mac_addr[];
@@ -115,7 +119,9 @@ struct xsk_info {
 struct user_opt {
 	uint8_t mode;		//App mode: TX/RX/FWD
 	uint8_t socket_mode;	//af_packet or af_xdp
-
+	#ifdef BUSY_POLL
+	uint8_t busy_poll;
+	#endif
 	char *ifname;
 	uint32_t ifindex;
 	clockid_t clkid;

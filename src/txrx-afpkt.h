@@ -44,5 +44,5 @@ void afpkt_sigint_handler(int signum);
 int init_tx_socket(struct user_opt *opt, int *sockfd, struct sockaddr_ll *sk_addr);
 void afpkt_send_thread(struct user_opt *opt, int *sockfd, struct sockaddr_ll *sk_addr);
 void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll *sk_addr);
-int init_rx_socket(uint16_t etype, int *sock, char *interface);
+int init_rx_socket(uint16_t etype, int *sock, char *interface, struct user_opt *opt);
 int afpkt_recv_pkt(int sock, struct user_opt *opt);

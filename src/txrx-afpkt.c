@@ -454,8 +454,41 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 	return;
 }
 
+#ifdef BUSY_POLL
+static int apply_setsockopt(int sk_fd)
+{
+	int sock_opt;
+
+	sock_opt = 1;
+	if (setsockopt(sk_fd, SOL_SOCKET, SO_PREFER_BUSY_POLL,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	{
+		fprintf(stderr, "Error: Couldn't set SO_PREFER_BUSY_POLL");
+		return -1;
+	}
+
+	sock_opt = 20;
+	if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	{
+		fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL");
+		return -1;
+	}
+		
+	sock_opt = 64;
+	if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL_BUDGET,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	{
+		fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL_BUDGET");
+		return -1;
+	}
+	
+	return 0;
+}
+#endif
+
 /* Create a RAW socket to receive all incoming packets from an interface. */
-int init_rx_socket(uint16_t etype, int *sock, char *interface)
+int init_rx_socket(uint16_t etype, int *sock, char *interface, struct user_opt *opt)
 {
 	struct sockaddr_ll addr;
 	struct ifreq if_request;
@@ -542,6 +575,11 @@ int init_rx_socket(uint16_t etype, int *sock, char *interface)
 			sizeof(timestamping_flags)) < 0)
 		exit_with_error("setsockopt SO_TIMESTAMPING");
 
+	#ifdef BUSY_POLL
+	if (opt->busy_poll && apply_setsockopt(rsock) < 0){
+		exit_with_error("setsockopt SO_BUSY_POLL");
+	}
+	#endif
 	*sock = rsock;
 	return 0;
 }

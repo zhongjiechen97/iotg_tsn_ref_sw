@@ -223,6 +223,29 @@ static void prefill_tx_umem_rings(void *buff_addr, tsn_packet *example_pkt,
 	}
 }
 
+#ifdef BUSY_POLL
+static void apply_setsockopt(struct xsk_socket *xsk)
+{
+	int sock_opt;
+
+	sock_opt = 1;
+	if (setsockopt(xsk_socket__fd(xsk), SOL_SOCKET, SO_PREFER_BUSY_POLL,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+		afxdp_exit_with_error(errno);
+
+	sock_opt = 20;
+	if (setsockopt(xsk_socket__fd(xsk), SOL_SOCKET, SO_BUSY_POLL,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+		afxdp_exit_with_error(errno);
+
+	sock_opt = 64;
+	if (setsockopt(xsk_socket__fd(xsk), SOL_SOCKET, SO_BUSY_POLL_BUDGET,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+		afxdp_exit_with_error(errno);
+	printf("Apply BUSY_POLL\n");
+}
+#endif
+
 void init_xdp_socket(struct user_opt *opt)
 {
 	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
@@ -269,6 +292,12 @@ void init_xdp_socket(struct user_opt *opt)
 	/* Assign the umem to a socket */
 	opt->xsk = create_xsk_info(opt, pktbuffer);
 	glob_xskinfo_ptr = opt->xsk;
+
+	/* SO_BUSY_POLL */
+	#ifdef BUSY_POLL
+	if(opt->busy_poll)
+		apply_setsockopt(opt->xsk->xskfd);
+	#endif
 
 }
 
