@@ -434,21 +434,44 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 
 			/* Result format: seq, user txtime, hw txtime */
 			if (verbose)
-				fprintf(stdout, "%u\t%lu\t%lu\n",
-					seq - 1,
-					tx_timestampA,
-					tx_timestampB);
+			{
+				// fprintf(stdout, "%u\t%lu\t%lu\n",
+				// 	seq - 1,
+				// 	tx_timestampA,
+				// 	tx_timestampB);
+					/* Result format:
+				*   u2u latency, seq, queue, user txtime, hw rxtime,sw rxtime, user rxtime
+				*/
+				
+				record(&dts, tx_timestampA,
+						tx_timestampB,
+						0,
+						0,
+						0,
+						0,
+						0);
 		} else {
 			/* Print 0 if txtimestamp failed to return in time,
 			 * either indicating hwtstamp is not enabled OR
 			 * packet failed to transmit.
 			 */
 			if (verbose)
-				fprintf(stdout, "%u %lu 0\n",
-					seq - 1, tx_timestampA);
+			{
+				// fprintf(stdout, "%u %lu 0\n",
+				// 	seq - 1, tx_timestampA);
+				record(&dts, tx_timestampA,
+						0,
+						0,
+						0,
+						0,
+						0,
+						0);
+						}
+			}
 		}
-		fflush(stdout);
+		// fflush(stdout);
 	}
+	dump(&dts);	
 
 	close(sock);
 	return;

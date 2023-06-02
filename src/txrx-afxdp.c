@@ -465,6 +465,79 @@ void *afxdp_send_thread(void *arg)
 	/* Calling thread is responsible of removing xdp program */
 }
 
+/* copy from kernel/time/time.c */
+typedef int8_t s8;
+typedef uint8_t u8;
+typedef int16_t s16;
+typedef uint16_t u16;
+typedef int32_t s32;
+typedef uint32_t u32;
+typedef int64_t s64;
+typedef uint64_t u64;
+
+// typedef int8_t __s8;
+// typedef uint8_t __u8;
+// typedef int16_t __s16;
+// typedef uint16_t __u16;
+// typedef int32_t __s32;
+// typedef uint32_t __u32;
+// typedef int64_t __s64;
+// typedef uint64_t __u64;
+
+typedef int64_t time64_t;
+struct timespec64 {
+	time64_t	tv_sec;			/* seconds */
+	long		tv_nsec;		/* nanoseconds */
+};
+
+#define NSEC_PER_SEC 1000000000L
+static inline u64 div_u64_rem(u64 dividend, u32 divisor, u32 *remainder)
+{
+	union {
+		u64 v64;
+		u32 v32[2];
+	} d = { dividend };
+	u32 upper;
+
+	upper = d.v32[1];
+	d.v32[1] = 0;
+	if (upper >= divisor) {
+		d.v32[1] = upper / divisor;
+		upper %= divisor;
+	}
+	asm ("divl %2" : "=a" (d.v32[0]), "=d" (*remainder) :
+		"rm" (divisor), "0" (d.v32[0]), "1" (upper));
+	return d.v64;
+}
+
+/**
+ * ns_to_timespec64 - Convert nanoseconds to timespec64
+ * @nsec:       the nanoseconds value to be converted
+ *
+ * Returns the timespec64 representation of the nsec parameter.
+ */
+struct timespec64 ns_to_timespec64(s64 nsec)
+{
+	struct timespec64 ts = { 0, 0 };
+	s32 rem;
+
+	if (nsec > 0) {
+		ts.tv_sec = div_u64_rem(nsec, NSEC_PER_SEC, &rem);
+		ts.tv_nsec = rem;
+	} else if (nsec < 0) {
+		/*
+		 * With negative times, tv_sec points to the earlier
+		 * second, and tv_nsec counts the nanoseconds since
+		 * then, so tv_nsec is always a positive number.
+		 */
+		ts.tv_sec = -div_u64_rem(-nsec - 1, NSEC_PER_SEC, &rem) - 1;
+		ts.tv_nsec = NSEC_PER_SEC - rem - 1;
+	}
+
+	return ts;
+}
+
+
 // Receive 1 packet at a time and print it.
 void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 {
@@ -518,12 +591,14 @@ void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 			/* Result format:
 			*   u2u latency, seq, queue, user txtime, hw rxtime,sw rxtime, user rxtime
 			*/
-	
+			struct timespec64 ts= ns_to_timespec64(*(uint64_t *)(pkt - 16));
+			uint64_t hw_rxtime = (ts.tv_sec * NSEC_PER_SEC + ts.tv_nsec);
 			record(&dts, rx_timestampD - payload->tx_timestampA,
 					payload->seq,
 					payload->tx_queue,
 					payload->tx_timestampA,
-					*(uint64_t *)(pkt - sizeof(uint64_t)),
+					// *(uint64_t *)(pkt - sizeof(uint64_t)),
+					hw_rxtime,
 					0,
 					rx_timestampD);
 
