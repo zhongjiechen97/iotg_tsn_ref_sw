@@ -149,6 +149,8 @@ struct user_opt {
 	uint8_t enable_txtime;
 	bool need_wakeup;
 	uint32_t poll_timeout;
+
+	uint64_t base_time;
 };
 
 /* Struct for VLAN packets with 1722 header */

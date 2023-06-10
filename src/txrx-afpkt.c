@@ -376,11 +376,24 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 
 	/* CMSG end? */
 
-	looping_ts = get_time_sec(CLOCK_REALTIME) + (2 * NSEC_PER_SEC);
-	looping_ts += opt->offset_ns;
-	looping_ts -= opt->early_offset_ns;
-	ts.tv_sec = looping_ts / NSEC_PER_SEC;
-	ts.tv_nsec = looping_ts % NSEC_PER_SEC;
+	if(opt->base_time == 0)
+	{
+		looping_ts = get_time_sec(CLOCK_REALTIME) + (2 * NSEC_PER_SEC);
+		looping_ts += opt->offset_ns;
+		looping_ts -= opt->early_offset_ns;
+		ts.tv_sec = looping_ts / NSEC_PER_SEC;
+		ts.tv_nsec = looping_ts % NSEC_PER_SEC;
+	}
+	else
+	{
+		uint64_t future = get_time_sec(CLOCK_REALTIME) + (2 * NSEC_PER_SEC);
+		uint64_t exceed = (future - opt->base_time) % interval_ns;
+		future -= exceed;
+		looping_ts = future;
+		ts.tv_sec = looping_ts / NSEC_PER_SEC;
+		ts.tv_nsec = looping_ts % NSEC_PER_SEC;
+	}
+	printf("looping_ts = %lu\n", looping_ts);
 
 	payload_ptr = (void *) (&tsn_pkt->payload);
 	payload = (struct custom_payload *) payload_ptr;
@@ -480,7 +493,8 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 	}
 	// wait all transmission completed	
 	usleep(1000000);
-	dump(&dts);
+	if(verbose)
+		dump(&dts);
 	close(sock);
 	return;
 }
@@ -488,31 +502,31 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 #ifdef BUSY_POLL
 static int apply_setsockopt(int sk_fd)
 {
-	// int sock_opt;
+	int sock_opt;
 
-	// sock_opt = 1;
-	// if (setsockopt(sk_fd, SOL_SOCKET, SO_PREFER_BUSY_POLL,
-	// 	       (void *)&sock_opt, sizeof(sock_opt)) < 0)
-	// {
-	// 	fprintf(stderr, "Error: Couldn't set SO_PREFER_BUSY_POLL");
-	// 	return -1;
-	// }
+	sock_opt = 1;
+	if (setsockopt(sk_fd, SOL_SOCKET, SO_PREFER_BUSY_POLL,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	{
+		fprintf(stderr, "Error: Couldn't set SO_PREFER_BUSY_POLL");
+		return -1;
+	}
 
-	// sock_opt = 20;
-	// if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL,
-	// 	       (void *)&sock_opt, sizeof(sock_opt)) < 0)
-	// {
-	// 	fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL");
-	// 	return -1;
-	// }
+	sock_opt = 20;
+	if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	{
+		fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL");
+		return -1;
+	}
 		
-	// sock_opt = 64;
-	// if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL_BUDGET,
-	// 	       (void *)&sock_opt, sizeof(sock_opt)) < 0)
-	// {
-	// 	fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL_BUDGET");
-	// 	return -1;
-	// }
+	sock_opt = 64;
+	if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL_BUDGET,
+		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	{
+		fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL_BUDGET");
+		return -1;
+	}
 	
 	return 0;
 }

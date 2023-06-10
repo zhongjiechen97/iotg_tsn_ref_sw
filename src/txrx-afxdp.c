@@ -382,6 +382,7 @@ static void afxdp_send_pkt(struct xsk_info *xsk, struct user_opt *opt,
 	xsk->cur_tx %= opt->x_opt.frames_per_ring;
 
 	// Complete the TX sequence.
+	// ret = sendto(xsk_socket__fd(xsk->xskfd), NULL, 0, MSG_DONTWAIT, NULL, 0);
 	ret = sendto(xsk_socket__fd(xsk->xskfd), NULL, 0, MSG_DONTWAIT, NULL, 0);
 	if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY) {
 		update_txstats(xsk);
@@ -397,8 +398,8 @@ void *afxdp_send_thread(void *arg)
 
 	struct custom_payload *payload;
 	char buff[opt->packet_size];
-	uint64_t sleep_timestamp;
 	uint64_t tx_timestamp;
+	uint64_t looping_ts;
 	tsn_packet *tsn_pkt;
 	struct timespec ts;
 
@@ -416,21 +417,36 @@ void *afxdp_send_thread(void *arg)
 
 	payload = (struct custom_payload *) buff;
 
-	tx_timestamp = get_time_sec(CLOCK_REALTIME);    //0.5s ahead (stmmac limitation)
-	tx_timestamp += opt->offset_ns;
-	tx_timestamp += 2 * NSEC_PER_SEC;
+	if(opt->base_time == 0)
+	{
+		looping_ts = get_time_sec(CLOCK_REALTIME) + (2 * NSEC_PER_SEC);
+		looping_ts += opt->offset_ns;
+		looping_ts -= opt->early_offset_ns;
+		ts.tv_sec = looping_ts / NSEC_PER_SEC;
+		ts.tv_nsec = looping_ts % NSEC_PER_SEC;
+	}
+	else
+	{
+		uint64_t future = get_time_sec(CLOCK_REALTIME) + (2 * NSEC_PER_SEC);
+		uint64_t exceed = (future - opt->base_time) % opt->interval_ns;
+		future -= exceed;
+		looping_ts = future;
+		ts.tv_sec = looping_ts / NSEC_PER_SEC;
+		ts.tv_nsec = looping_ts % NSEC_PER_SEC;
+	}
+	printf("looping_ts = %lu\n", looping_ts);
 
 	while(!halt_tx_sig && (i < opt->frames_to_send) ) {
-		sleep_timestamp = tx_timestamp - opt->early_offset_ns;
-		ts.tv_sec = sleep_timestamp / NSEC_PER_SEC;
-		ts.tv_nsec = sleep_timestamp % NSEC_PER_SEC;
-		clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &ts, NULL);
+
+		clock_nanosleep(opt->clkid, TIMER_ABSTIME, &ts, NULL);
 
 		payload->tx_queue = opt->x_opt.queue;
 		payload->seq = seq_num;
 		payload->tx_timestampA = get_time_nanosec(CLOCK_REALTIME);
 
-		//Send one packet without caring about descriptors, make it look normal.
+		tx_timestamp = looping_ts + opt->early_offset_ns;
+
+		// Send one packet without caring about descriptors, make it look normal.
 		if (opt->enable_txtime)
 			afxdp_send_pkt(xsk, opt, 18, opt->packet_size, &buff, tx_timestamp);
 		else
@@ -451,7 +467,11 @@ void *afxdp_send_thread(void *arg)
 					0);
 		}
 		seq_num++;
-		tx_timestamp += opt->interval_ns;
+
+		looping_ts += opt->interval_ns;
+		ts.tv_sec = looping_ts / NSEC_PER_SEC;
+		ts.tv_nsec = looping_ts % NSEC_PER_SEC;
+		
 		// fflush(stdout);
 		if (seq_num >= opt->frames_to_send) {		
 			dump(&dts);
@@ -470,7 +490,7 @@ void *afxdp_send_thread(void *arg)
 void afxdp_recv_pkt(struct xsk_info *xsk, void *rbuff, struct user_opt* opt)
 {
 	struct custom_payload *payload;
-	uint64_t rx_timestampD, rx_timestampE;
+	uint64_t rx_timestampD;
 	tsn_packet *tsn_pkt;
 	void *payload_ptr;
 	(void) rbuff;

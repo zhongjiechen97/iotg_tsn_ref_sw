@@ -147,6 +147,7 @@ static struct argp_option options[] = {
 					   "	Def: 1000 | Min: 1 | Max: 10000000"},
 	{"dst-mac-addr",   'd', "MAC_ADDR",	0, "destination mac address\n"
 						   "	Def: 22:bb:22:bb:22:bb"},
+	{"base-time", 'L', "BASE_TIME", 0, 'base time in ns\n'},
 
 	{0,0,0,0, "LaunchTime/TBS-specific:\n(where base is the 0th ns of current second)" },
 	{"transmit-offset",'o', "NSEC",	0, "packet txtime positive offset\n"
@@ -239,6 +240,11 @@ static error_t parser(int key, char *arg, struct argp_state *state)
 		if (errno || res < 64 || res > 1500 || str_end != &arg[len])
 			exit_with_error("Invalid packet size. Check --help");
 		opt->packet_size = (uint32_t)res;
+		break;
+	/* base time */
+	case 'L':
+		len = strlen(arg);
+		opt->base_time = (uint64_t)strtoull((const char *)arg, &str_end, 10);
 		break;
 	case 'y':
 		len = strlen(arg);
@@ -367,6 +373,8 @@ int main(int argc, char *argv[])
 	opt.enable_txtime = 0;
 	opt.need_wakeup = false;
 	opt.poll_timeout = 1000;
+
+	opt.base_time = 0;
 
 	#ifdef BUSY_POLL
 	opt.busy_poll = 0;
