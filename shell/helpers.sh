@@ -167,6 +167,14 @@ init_interface(){
                 ethtool --set-eee $IFACE eee off &> /dev/null
         fi
 
+        # Close NIC Coleasing   
+        echo "Clos NIC Coelescing..."
+        ethtool -C $IFACE rx-usecs 0 tx-usecs 0
+
+        # Stop irqbalance
+        echo "Stop irqbalance..."
+        service irqbalance stop
+
         # Set irq affinity
         set_irq_smp_affinity $IFACE $DIR/../common/$IRQ_AFFINITY_FILE
 }

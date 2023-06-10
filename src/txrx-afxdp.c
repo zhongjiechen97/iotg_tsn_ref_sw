@@ -382,7 +382,6 @@ static void afxdp_send_pkt(struct xsk_info *xsk, struct user_opt *opt,
 	xsk->cur_tx %= opt->x_opt.frames_per_ring;
 
 	// Complete the TX sequence.
-	// ret = sendto(xsk_socket__fd(xsk->xskfd), NULL, 0, MSG_DONTWAIT, NULL, 0);
 	ret = sendto(xsk_socket__fd(xsk->xskfd), NULL, 0, MSG_DONTWAIT, NULL, 0);
 	if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY) {
 		update_txstats(xsk);
@@ -445,6 +444,7 @@ void *afxdp_send_thread(void *arg)
 		payload->tx_timestampA = get_time_nanosec(CLOCK_REALTIME);
 
 		tx_timestamp = looping_ts + opt->early_offset_ns;
+		printf("tx_timsstamp = %lu\n", tx_timestamp);
 
 		// Send one packet without caring about descriptors, make it look normal.
 		if (opt->enable_txtime)
