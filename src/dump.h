@@ -22,6 +22,8 @@ struct dump_tstamp {
 
 static void record(struct dump_tstamp * dts, uint64_t a, uint32_t b, uint32_t c, uint64_t d, uint64_t e, uint64_t f, uint64_t g)
 {
+    if(dts->record_idx >= MAX_RECORD) //drop
+        return ;
     dts->recs[dts->record_idx].e2e_lat = a;
     dts->recs[dts->record_idx].seq = b;
     dts->recs[dts->record_idx].queue = c;
@@ -30,8 +32,6 @@ static void record(struct dump_tstamp * dts, uint64_t a, uint32_t b, uint32_t c,
     dts->recs[dts->record_idx].sw_rx = f;
     dts->recs[dts->record_idx].user_rx = g;
     dts->record_idx++;
-    if(dts->record_idx >= MAX_RECORD) //drop
-        return ;
 }
 
 static void dump(struct dump_tstamp * dts)

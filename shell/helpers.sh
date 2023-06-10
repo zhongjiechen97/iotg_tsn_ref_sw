@@ -40,7 +40,9 @@ NUM_CORE=4
 # PHASE: Iniatialization
 
 set_irq_smp_affinity(){
-
+        sudo service irqbalance stop
+        echo "service irqbalance stop"
+        
         IFACE=$1
 
         AFFINITY_FILE=$2

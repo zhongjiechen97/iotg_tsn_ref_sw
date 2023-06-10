@@ -444,10 +444,10 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 				*/
 				
 				record(&dts, tx_timestampA,
+						0,
+						0,
+						0,
 						tx_timestampB,
-						0,
-						0,
-						0,
 						0,
 						0);
 		} else {
@@ -466,13 +466,21 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 						0,
 						0,
 						0);
-						}
+			}
 			}
 		}
+		record(&dts, tx_timestampA,
+						seq-1,
+						0,
+						0,
+						0,
+						0,
+						0);
 		// fflush(stdout);
 	}
-	dump(&dts);	
-
+	// wait all transmission completed	
+	usleep(1000000);
+	dump(&dts);
 	close(sock);
 	return;
 }
@@ -480,31 +488,31 @@ void afpkt_send_thread_etf(struct user_opt *opt, int *sockfd, struct sockaddr_ll
 #ifdef BUSY_POLL
 static int apply_setsockopt(int sk_fd)
 {
-	int sock_opt;
+	// int sock_opt;
 
-	sock_opt = 1;
-	if (setsockopt(sk_fd, SOL_SOCKET, SO_PREFER_BUSY_POLL,
-		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
-	{
-		fprintf(stderr, "Error: Couldn't set SO_PREFER_BUSY_POLL");
-		return -1;
-	}
+	// sock_opt = 1;
+	// if (setsockopt(sk_fd, SOL_SOCKET, SO_PREFER_BUSY_POLL,
+	// 	       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	// {
+	// 	fprintf(stderr, "Error: Couldn't set SO_PREFER_BUSY_POLL");
+	// 	return -1;
+	// }
 
-	sock_opt = 20;
-	if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL,
-		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
-	{
-		fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL");
-		return -1;
-	}
+	// sock_opt = 20;
+	// if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL,
+	// 	       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	// {
+	// 	fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL");
+	// 	return -1;
+	// }
 		
-	sock_opt = 64;
-	if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL_BUDGET,
-		       (void *)&sock_opt, sizeof(sock_opt)) < 0)
-	{
-		fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL_BUDGET");
-		return -1;
-	}
+	// sock_opt = 64;
+	// if (setsockopt(sk_fd, SOL_SOCKET, SO_BUSY_POLL_BUDGET,
+	// 	       (void *)&sock_opt, sizeof(sock_opt)) < 0)
+	// {
+	// 	fprintf(stderr, "Error: Couldn't set SO_BUSY_POLL_BUDGET");
+	// 	return -1;
+	// }
 	
 	return 0;
 }

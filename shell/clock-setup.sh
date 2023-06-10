@@ -50,6 +50,9 @@ if [ -z $PTP_TX_Q ]; then
     echo "Using default $PTP_TX_Q";
 fi
 
+sudo timedatectl set-ntp false
+echo "timedatectl set-ntp false"
+
 echo "Running PTP4L & PHC2SYS"
 
 if [ -z $PTP_PHY_HW ]; then
